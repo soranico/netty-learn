@@ -59,10 +59,29 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
+    /**
+     * 从这个类的名字可以得出
+     * 这个类主要创建只有一个线程的线程池
+     * @param parent
+     * @param executor
+     * @param addTaskWakesUp
+     * @param taskQueue
+     * @param tailTaskQueue
+     * @param rejectedExecutionHandler
+     */
     protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
                                     boolean addTaskWakesUp, Queue<Runnable> taskQueue, Queue<Runnable> tailTaskQueue,
                                     RejectedExecutionHandler rejectedExecutionHandler) {
+        /**
+         * 调用父类的构造方法
+         * {@link SingleThreadEventExecutor#SingleThreadEventExecutor(io.netty.util.concurrent.EventExecutorGroup, java.util.concurrent.Executor, boolean, java.util.Queue, io.netty.util.concurrent.RejectedExecutionHandler)}
+         *
+         */
         super(parent, executor, addTaskWakesUp, taskQueue, rejectedExecutionHandler);
+        /**
+         * 不知道为什么要用两个Queue
+         * TODO 不懂
+         */
         tailTasks = ObjectUtil.checkNotNull(tailTaskQueue, "tailTaskQueue");
     }
 

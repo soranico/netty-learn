@@ -15,13 +15,7 @@
  */
 package io.netty.channel.nio;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelException;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopException;
-import io.netty.channel.EventLoopTaskQueueFactory;
-import io.netty.channel.SelectStrategy;
-import io.netty.channel.SingleThreadEventLoop;
+import io.netty.channel.*;
 import io.netty.util.IntSupplier;
 import io.netty.util.concurrent.RejectedExecutionHandler;
 import io.netty.util.internal.ObjectUtil;
@@ -35,17 +29,12 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
-
+import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -65,7 +54,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     private static final int MIN_PREMATURE_SELECTOR_RETURNS = 3;
     private static final int SELECTOR_AUTO_REBUILD_THRESHOLD;
-
+    /**
+     * spring中也有这个
+     * 就是一种提供值得策略
+     */
     private final IntSupplier selectNowSupplier = new IntSupplier() {
         @Override
         public int get() throws Exception {
@@ -124,21 +116,42 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     //    AWAKE            when EL is awake
     //    NONE             when EL is waiting with no wakeup scheduled
     //    other value T    when EL is waiting with wakeup scheduled at time T
-    private final AtomicLong nextWakeupNanos = new AtomicLong(AWAKE);
+    private final AtomicLong nextWakeupNanos = new AtomicLong(AWAKE);// 下次唤醒的纳秒时间
 
     private final SelectStrategy selectStrategy;
 
-    private volatile int ioRatio = 50;
+    private volatile int ioRatio = 50;// 处理IO和task的比例
     private int cancelledKeys;
     private boolean needsToSelectAgain;
 
+    /**
+     *
+     * @param parent 所属Group
+     * @param executor 线程池中线程的创建策略
+     * @param selectorProvider 选择策略提供器
+     * @param strategy 选择策略
+     * @param rejectedExecutionHandler 拒绝策略
+     * @param queueFactory task存放的Queue生成策略
+     */
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
                  SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler,
                  EventLoopTaskQueueFactory queueFactory) {
+        /**
+         * 首先调用父类的构造方法
+         * {@link SingleThreadEventLoop#SingleThreadEventLoop(io.netty.channel.EventLoopGroup, java.util.concurrent.Executor, boolean, java.util.Queue, java.util.Queue, io.netty.util.concurrent.RejectedExecutionHandler)}
+         *
+         */
         super(parent, executor, false, newTaskQueue(queueFactory), newTaskQueue(queueFactory),
                 rejectedExecutionHandler);
         this.provider = ObjectUtil.checkNotNull(selectorProvider, "selectorProvider");
         this.selectStrategy = ObjectUtil.checkNotNull(strategy, "selectStrategy");
+        /**
+         * 打开一个Selector
+         * jdk的NIO创建服务端的步骤之一
+         * Selector open = Selector.open();
+         * 只不过Netty是使用jdk的提供的根据os
+         * 来选择打开的策略来打开的而已
+         */
         final SelectorTuple selectorTuple = openSelector();
         this.selector = selectorTuple.selector;
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
@@ -174,7 +187,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         } catch (IOException e) {
             throw new ChannelException("failed to open a new selector", e);
         }
-
+        /**
+         * 是否需要key存放修改
+         * jdk底层是使用set存放的
+         * Netty修改为数组存放key
+         * 以此来提升选择速度
+         * TODO 不懂
+         */
         if (DISABLE_KEY_SET_OPTIMIZATION) {
             return new SelectorTuple(unwrappedSelector);
         }
@@ -204,6 +223,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
+        /**
+         * 存放注册的事件key的替换
+         */
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
 
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {

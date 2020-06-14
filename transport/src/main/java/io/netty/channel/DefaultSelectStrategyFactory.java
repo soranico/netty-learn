@@ -21,8 +21,17 @@ package io.netty.channel;
 public final class DefaultSelectStrategyFactory implements SelectStrategyFactory {
     public static final SelectStrategyFactory INSTANCE = new DefaultSelectStrategyFactory();
 
+    /**
+     * 私有构造方法
+     */
     private DefaultSelectStrategyFactory() { }
 
+    /**
+     * 提供方法获取实例
+     * 单例模式的两步走
+     * 但是反射可破
+     * @return
+     */
     @Override
     public SelectStrategy newSelectStrategy() {
         return DefaultSelectStrategy.INSTANCE;

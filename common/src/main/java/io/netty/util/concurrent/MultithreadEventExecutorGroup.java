@@ -60,7 +60,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
 
     /**
      * Create a new instance.
-     *
+     * 无论NIO还是Epoll都是这个完成
      * @param nThreads          the number of threads that will be used by this instance.
      * @param executor          the Executor to use, or {@code null} if the default should be used.
      * @param chooserFactory    the {@link EventExecutorChooserFactory} to use.
@@ -72,15 +72,41 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             throw new IllegalArgumentException(String.format("nThreads: %d (expected: > 0)", nThreads));
         }
 
+        /**
+         * 构造线程池的线程的工厂是否指定
+         * netty默认使用了ThreadPerTaskExecutor
+         * 这个里面的线程会被封装为FastThreadLocalThread
+         * 对ThreadLocal进行了优化
+         * 所有尽量自己指定,标记线程名
+         */
         if (executor == null) {
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
-
+        /**
+         * 根据线程的个数来创建对应
+         * 大小的线程池
+         * 在Netty中 线程池：线程 = 1:1
+         * 因此在消息在Handler的时候可以获取
+         * 绑定的线程池来判断是直接执行还是封装为task
+         * 交给对应的线程池处理
+         */
         children = new EventExecutor[nThreads];
 
+        /**
+         * 循环构建线程池
+         */
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
+                /**
+                 * 线程池构建
+                 * 交由子类去实现构建,本次主要阅读NIO
+                 * NIO {@link io.netty.channel.nio.NioEventLoopGroup#newChild(java.util.concurrent.Executor, java.lang.Object...)
+                 *
+                 *
+                 *
+                 * Epool {@link io.netty.channel.epoll.EpollEventLoopGroup#newChild(java.util.concurrent.Executor, java.lang.Object...)}
+                 */
                 children[i] = newChild(executor, args);
                 success = true;
             } catch (Exception e) {
