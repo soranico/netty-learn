@@ -14,6 +14,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Constructor;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 
 /**
@@ -31,7 +32,9 @@ import java.util.concurrent.Executor;
  * </pre>
  */
 @Slf4j
+@SuppressWarnings("unchecked")
 public class EchoServer {
+
 
     private static final int BOSS_THREAD_NUM = 1;
     private static final int WORKER_THREAD_NUM = 4;
@@ -40,17 +43,17 @@ public class EchoServer {
     private static final int PORT = 9090;
     private static Class clazz;
     private static Class loopClazz;
-    private static final String WIN_OS_LOWER="win";
-    private static final String WIN_OS_HIGHER="Win";
+    private static final String WIN_OS="Win";
 
     /**
-     * 根据os选择ServerChannel
+     * 加载类时根据os选择ServerChannel
      * win : NioServerSocketChannel
      * linux : EpollServerSocketChannel
      */
     static {
         String os = System.getProperty("os.name");
-        if (os.contains(WIN_OS_HIGHER) || os.contains(WIN_OS_LOWER)){
+        Properties properties = System.getProperties();
+        if (os.contains(WIN_OS)){
             clazz=NioServerSocketChannel.class;
             loopClazz=NioEventLoopGroup.class;
         }else {
