@@ -157,6 +157,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
     }
 
+    /**
+     * 创建一个存放task的队列
+     * 如果用户指定了生成queue的Factory则使用指定的
+     * 否则使用Netty默认的
+     * @param queueFactory 队列生成工厂
+     * @return 队列
+     */
     private static Queue<Runnable> newTaskQueue(
             EventLoopTaskQueueFactory queueFactory) {
         if (queueFactory == null) {
@@ -197,7 +204,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         if (DISABLE_KEY_SET_OPTIMIZATION) {
             return new SelectorTuple(unwrappedSelector);
         }
-
+        /**
+         * 越过安全校验来获取SelectorImpl的类信息
+         */
         Object maybeSelectorImplClass = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -225,9 +234,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
         /**
          * 存放注册的事件key的替换
+         * 底层是一个默认1024的数组
          */
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
-
+        /**
+         * 修改SelectorImpl类中存放SelectionKey的数据结构为数组
+         * jdk底层使用的是set在大量时相较于数组会比较慢
+         */
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -296,8 +309,18 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return newTaskQueue0(maxPendingTasks);
     }
 
+    /**
+     * Netty默认生成queue
+     * @param maxPendingTasks
+     * @return
+     */
     private static Queue<Runnable> newTaskQueue0(int maxPendingTasks) {
         // This event loop never calls takeTask()
+        /**
+         * 根据队列大小来生成
+         * 这里Netty基于并发伪共享的问题填充了字节
+         * 如果指定队列大小则会最接近当前数字的2^n来作为队列的大小
+         */
         return maxPendingTasks == Integer.MAX_VALUE ? PlatformDependent.<Runnable>newMpscQueue()
                 : PlatformDependent.<Runnable>newMpscQueue(maxPendingTasks);
     }

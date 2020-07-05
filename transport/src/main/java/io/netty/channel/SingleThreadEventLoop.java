@@ -31,7 +31,13 @@ import java.util.concurrent.ThreadFactory;
  *
  */
 public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor implements EventLoop {
-
+    /**
+     * 每个线程池的task队列大小
+     * 系统参数没有指定则去int最大值
+     * 最小是16
+     *
+     * 这个是每个线程池的大小，不是线程池组的大小
+     */
     protected static final int DEFAULT_MAX_PENDING_TASKS = Math.max(16,
             SystemPropertyUtil.getInt("io.netty.eventLoop.maxPendingTasks", Integer.MAX_VALUE));
 

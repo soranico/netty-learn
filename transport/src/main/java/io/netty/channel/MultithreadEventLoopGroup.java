@@ -31,12 +31,16 @@ import java.util.concurrent.ThreadFactory;
  * the same time.
  */
 public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutorGroup implements EventLoopGroup {
-
+    /** 日志记录 */
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MultithreadEventLoopGroup.class);
 
     private static final int DEFAULT_EVENT_LOOP_THREADS;
 
     static {
+        /**
+         * 默认的Group大小，如果设置到参数里则取
+         * 否则默认为cpu核心数*2
+         */
         DEFAULT_EVENT_LOOP_THREADS = Math.max(1, SystemPropertyUtil.getInt(
                 "io.netty.eventLoopThreads", NettyRuntime.availableProcessors() * 2));
 

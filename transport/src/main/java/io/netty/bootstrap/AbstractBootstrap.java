@@ -16,16 +16,7 @@
 
 package io.netty.bootstrap;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultChannelPromise;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ReflectiveChannelFactory;
+import io.netty.channel.*;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.GlobalEventExecutor;
@@ -265,10 +256,22 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     public ChannelFuture bind(SocketAddress localAddress) {
         validate();
+        /**
+         * 绑定监听本地端口
+         */
         return doBind(ObjectUtil.checkNotNull(localAddress, "localAddress"));
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        /**
+         * 实例并且注册Channel到Selector
+         * 
+         * 就是对jdk注册的封装 0代表注册
+         *   Selector selector=Selector.open();
+         *   ServerSocketChannel serverChannel=ServerSocketChannel.open();
+         *   serverChannel.register(selector,0);
+         * 
+         */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
@@ -304,10 +307,24 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * 实例Channel并注册
+     * @return
+     */
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            /**
+             * 就是通过constructor反射实例一个对象
+             * channelFactory是通过.channel(Class)来得到
+             */
             channel = channelFactory.newChannel();
+            /**
+             * 初始化channel
+             * 
+             * 服务端：{@link ServerBootstrap#init(Channel)}
+             * 
+             */
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {

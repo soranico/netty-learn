@@ -29,28 +29,14 @@ import org.jctools.queues.atomic.SpscLinkedAtomicQueue;
 import org.jctools.util.Pow2;
 import org.jctools.util.UnsafeAccess;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
@@ -59,11 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.netty.util.internal.PlatformDependent0.HASH_CODE_ASCII_SEED;
-import static io.netty.util.internal.PlatformDependent0.HASH_CODE_C1;
-import static io.netty.util.internal.PlatformDependent0.HASH_CODE_C2;
-import static io.netty.util.internal.PlatformDependent0.hashCodeAsciiSanitize;
-import static io.netty.util.internal.PlatformDependent0.unalignedAccess;
+import static io.netty.util.internal.PlatformDependent0.*;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
@@ -925,6 +907,9 @@ public final class PlatformDependent {
             // Calculate the max capacity which can not be bigger then MAX_ALLOWED_MPSC_CAPACITY.
             // This is forced by the MpscChunkedArrayQueue implementation as will try to round it
             // up to the next power of two and so will overflow otherwise.
+            /**
+             * 计算最接近当前大小的2^n来作为默认大小
+             */
             final int capacity = max(min(maxCapacity, MAX_ALLOWED_MPSC_CAPACITY), MIN_MAX_MPSC_CAPACITY);
             return USE_MPSC_CHUNKED_ARRAY_QUEUE ? new MpscChunkedArrayQueue<T>(MPSC_CHUNK_SIZE, capacity)
                                                 : new MpscGrowableAtomicArrayQueue<T>(MPSC_CHUNK_SIZE, capacity);
@@ -940,6 +925,9 @@ public final class PlatformDependent {
      * Create a new {@link Queue} which is safe to use for multiple producers (different threads) and a single
      * consumer (one thread!).
      * @return A MPSC queue which may be unbounded.
+     *
+     * 创建一个生产者:消费者=n:1的安全的队列
+     * TODO 伪共享 使用填充数据解决
      */
     public static <T> Queue<T> newMpscQueue() {
         return Mpsc.newMpscQueue();
