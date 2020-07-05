@@ -323,7 +323,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
              * 初始化channel
              * 
              * 服务端：{@link ServerBootstrap#init(Channel)}
-             * 
+             *
              */
             init(channel);
         } catch (Throwable t) {

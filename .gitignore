@@ -45,3 +45,8 @@ mainframer
 # exclude vscode files
 .vscode/
 *.factorypath
+.github
+.mvn
+.gitattributes
+.fbprefs
+.lgtm.yml

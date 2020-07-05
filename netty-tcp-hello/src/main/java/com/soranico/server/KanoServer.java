@@ -1,5 +1,8 @@
 package com.soranico.server;
 
+import com.soranico.server.constant.AuthStateEnum;
+import com.soranico.server.constant.KanoServerChannelKey;
+import com.soranico.server.handler.KanoServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -33,17 +36,32 @@ import java.util.concurrent.Executor;
  */
 @Slf4j
 @SuppressWarnings("unchecked")
-public class EchoServer {
+public class KanoServer {
 
-
+    /**
+     * 接收请求线程池大小
+     */
     private static final int BOSS_THREAD_NUM = 1;
+    /**
+     * 处理I/O线程池大小
+     */
     private static final int WORKER_THREAD_NUM = 4;
+    /**
+     * 业务线程池大小
+     */
     private static final int BUSINESS_THREAD_NUMS = 32;
+    /**
+     * 业务线程池任务队列大小
+     */
+    private static final int BUSINESS_TASK_NUMS = 1024;
+    /**
+     * 连接等待大小
+     */
     private static final int BACKLOG = 1024;
     private static final int PORT = 9090;
     private static Class clazz;
-    private static Class loopClazz;
-    private static final String WIN_OS="Win";
+    private static Class eventLoopGroupClazz;
+    private static final String WIN_OS = "Win";
 
     /**
      * 加载类时根据os选择ServerChannel
@@ -53,12 +71,12 @@ public class EchoServer {
     static {
         String os = System.getProperty("os.name");
         Properties properties = System.getProperties();
-        if (os.contains(WIN_OS)){
-            clazz=NioServerSocketChannel.class;
-            loopClazz=NioEventLoopGroup.class;
-        }else {
-            clazz= EpollServerSocketChannel.class;
-            loopClazz= EpollEventLoopGroup.class;
+        if (os.contains(WIN_OS)) {
+            clazz = NioServerSocketChannel.class;
+            eventLoopGroupClazz = NioEventLoopGroup.class;
+        } else {
+            clazz = EpollServerSocketChannel.class;
+            eventLoopGroupClazz = EpollEventLoopGroup.class;
         }
     }
 
@@ -68,12 +86,12 @@ public class EchoServer {
          * 获取构造方法
          * 两个参数,指定线程工厂
          */
-        Constructor constructor = loopClazz.getConstructor(int.class, Executor.class);
+        Constructor constructor = eventLoopGroupClazz.getConstructor(int.class, Executor.class);
 
         /**
          * bossGroup
          */
-        EventLoopGroup bossGroup= (EventLoopGroup) constructor.newInstance(BOSS_THREAD_NUM,
+        EventLoopGroup bossGroup = (EventLoopGroup) constructor.newInstance(BOSS_THREAD_NUM,
                 new ThreadPerTaskExecutor(new DefaultThreadFactory("boss-thread-pool")));
 
         /**
@@ -85,8 +103,8 @@ public class EchoServer {
         /**
          * 业务线程
          */
-        EventExecutor businessExecutor = new DefaultEventExecutor(workerGroup,
-                new DefaultThreadFactory("business-thread-pool"), BUSINESS_THREAD_NUMS, RejectedExecutionHandlers.reject());
+        EventExecutorGroup businessExecutorGroup = new DefaultEventExecutorGroup(BUSINESS_THREAD_NUMS,
+                new DefaultThreadFactory("business-thread-pool"), BUSINESS_TASK_NUMS, RejectedExecutionHandlers.reject());
 
         /**
          * 启动类
@@ -94,8 +112,9 @@ public class EchoServer {
         ServerBootstrap echoServer = new ServerBootstrap();
         echoServer.group(bossGroup, workerGroup)
                 .channel(clazz)
-                .option(ChannelOption.SO_BACKLOG,BACKLOG)
-                .childHandler(EchoServerHandlerInitializer.INSTANCE.setBusinessExecutor(businessExecutor))
+                .option(ChannelOption.SO_BACKLOG, BACKLOG)
+                .childHandler(KanoServerChannelInitializer.INSTANCE.setBusinessExecutorGroup(businessExecutorGroup))
+                .childAttr(KanoServerChannelKey.AUTH_KEY, AuthStateEnum.init.name())
                 .childOption(ChannelOption.ALLOCATOR, new PooledByteBufAllocator(true,
                         8, 8, 8192, 11,
                         512, 256, 64,
@@ -103,17 +122,15 @@ public class EchoServer {
 
         try {
             Channel channel = echoServer.bind(PORT).sync().channel();
-            log.info("EchoServer start and Listen {}",PORT);
+            log.info("server start and listen {}", PORT);
             channel.closeFuture().sync();
         } catch (InterruptedException e) {
-
+            log.error("server start failed", e);
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
-            businessExecutor.shutdownGracefully();
+            businessExecutorGroup.shutdownGracefully();
         }
-
-
     }
 
 }
