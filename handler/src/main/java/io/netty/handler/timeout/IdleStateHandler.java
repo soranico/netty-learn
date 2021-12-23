@@ -326,6 +326,13 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             writerIdleTimeout = schedule(ctx, new WriterIdleTimeoutTask(ctx),
                     writerIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
+        /**
+         * 添加定时任务,定时检测
+         * 这个任务是绑定到channel的线程中的
+         *
+         * 如果注册的时候没有指定用业务线程执行的话那么就是I/O线程
+         * 执行任务,否则就是指定的业务线程执行
+         */
         if (allIdleTimeNanos > 0) {
             allIdleTimeout = schedule(ctx, new AllIdleTimeoutTask(ctx),
                     allIdleTimeNanos, TimeUnit.NANOSECONDS);
@@ -557,6 +564,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         protected void run(ChannelHandlerContext ctx) {
 
             long nextDelay = allIdleTimeNanos;
+            /**
+             * 当前时间和最近的一次读写时间的差值
+             * 如果是负数说明此事调用已经小于预定的
+             * 调用周期,那么触发空闲
+             */
             if (!reading) {
                 nextDelay -= ticksInNanos() - Math.max(lastReadTime, lastWriteTime);
             }

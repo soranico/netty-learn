@@ -1,4 +1,4 @@
-package com.soranico.server.handler;
+package com.kanozz.server.handler;
 
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;

@@ -1,4 +1,4 @@
-package com.soranico.server.constant;
+package com.kanozz.server.constant;
 
 import io.netty.util.AttributeKey;
 

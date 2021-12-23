@@ -1,10 +1,13 @@
-package com.soranico.server.handler;
+package com.kanozz.server.handler;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.EventExecutorGroup;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * <pre>
@@ -36,6 +39,7 @@ public class KanoServerChannelInitializer extends ChannelInitializer<SocketChann
     protected void initChannel(SocketChannel ch) throws Exception {
         ChannelPipeline pipeline = ch.pipeline();
         pipeline.addLast(businessExecutorGroup,"dispatcherHandler",KanoServerDispatcherHandler.INSTANCE);
+        pipeline.addLast("ideaHandler",new IdleStateHandler(0,0,5, TimeUnit.SECONDS));
 
     }
 }

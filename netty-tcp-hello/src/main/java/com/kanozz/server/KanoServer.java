@@ -1,8 +1,8 @@
-package com.soranico.server;
+package com.kanozz.server;
 
-import com.soranico.server.constant.AuthStateEnum;
-import com.soranico.server.constant.KanoServerChannelKey;
-import com.soranico.server.handler.KanoServerChannelInitializer;
+import com.kanozz.server.constant.AuthStateEnum;
+import com.kanozz.server.handler.KanoServerChannelInitializer;
+import com.kanozz.server.constant.KanoServerChannelKey;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -17,7 +17,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Constructor;
-import java.util.Properties;
 import java.util.concurrent.Executor;
 
 /**
@@ -70,8 +69,7 @@ public class KanoServer {
      */
     static {
         String os = System.getProperty("os.name");
-        Properties properties = System.getProperties();
-        if (os.contains(WIN_OS)) {
+        if (os.contains(WIN_OS)|| os.contains("Mac")) {
             clazz = NioServerSocketChannel.class;
             eventLoopGroupClazz = NioEventLoopGroup.class;
         } else {
@@ -93,6 +91,8 @@ public class KanoServer {
          */
         EventLoopGroup bossGroup = (EventLoopGroup) constructor.newInstance(BOSS_THREAD_NUM,
                 new ThreadPerTaskExecutor(new DefaultThreadFactory("boss-thread-pool")));
+
+
 
         /**
          * workerGroup
