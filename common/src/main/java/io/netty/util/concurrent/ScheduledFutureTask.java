@@ -203,6 +203,9 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         boolean canceled = super.cancel(mayInterruptIfRunning);
+        /**
+         * 从队列中移除已经取消的任务
+         */
         if (canceled) {
             scheduledExecutor().removeScheduled(this);
         }

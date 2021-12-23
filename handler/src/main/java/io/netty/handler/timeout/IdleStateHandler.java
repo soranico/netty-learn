@@ -575,22 +575,48 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             if (nextDelay <= 0) {
                 // Both reader and writer are idle - set a new timeout and
                 // notify the callback.
+                /**
+                 * 下发下一次的检查任务,因为此时虽然发布了
+                 * 事件但是这个空闲事件用户不一定会进行处理
+                 * 
+                 * 同时需要这个任务的引用,如果用户关闭了channel
+                 * 那么久没有必要调度这个任务了,直接移除即可
+                 * 如果任务还没有执行并且取消成功的话,会从任务队列中移除
+                 * @see io.netty.util.concurrent.ScheduledFutureTask#cancel(boolean) 
+                 */
                 allIdleTimeout = schedule(ctx, this, allIdleTimeNanos, TimeUnit.NANOSECONDS);
 
                 boolean first = firstAllIdleEvent;
                 firstAllIdleEvent = false;
 
                 try {
+                    /**
+                     * TODO 出站缓慢,也就是写出数据到socket慢
+                     * 默认返回的是false
+                     */
                     if (hasOutputChanged(ctx, first)) {
                         return;
                     }
-
+                    /**
+                     * 触发读写空闲事件
+                     * @see IdleStateHandler#channelIdle(ChannelHandlerContext, IdleStateEvent)
+                     */
                     IdleStateEvent event = newIdleStateEvent(IdleState.ALL_IDLE, first);
                     channelIdle(ctx, event);
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
                 }
-            } else {
+            }
+            /**
+             * 没有发生超时,重新进行任务的调度
+             * 此时的时间是 超时时间
+             * 5000  -= 7000(当前) - 4000(上次读取或写出)
+             * 此时 2000
+             * 也就是下次 2000 后就会再次判断
+             * 因为此时已经有延迟了,说明这次的检查已经存在了时间差,那么下次就不能按照
+             * 超时时间来检查了
+             */
+            else {
                 // Either read or write occurred before the timeout - set a new
                 // timeout with shorter delay.
                 allIdleTimeout = schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
